@@ -40,7 +40,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 
-                Button(autoRotate? "Pause" : "Spin") {
+                Button(autoRotate ? "Pause" : "Spin") {
                     autoRotate.toggle()
                 }
                 .buttonStyle(.bordered)
