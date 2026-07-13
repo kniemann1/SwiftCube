@@ -9,11 +9,12 @@ struct ContentView: View {
     @State private var autoRotate = true
     @State private var dragX: Float = 0.3
     @State private var dragY: Float = 0.6
-    
+    @State private var lastDragTranslation: CGSize = .zero
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Photo Cube").font(.largeTitle.bold())
-            
+
             CubeView(images: uiImages, autoRotate: autoRotate, dragX: dragX, dragY: dragY)
                 .frame(height: 380)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -22,8 +23,14 @@ struct ContentView: View {
                     DragGesture()
                         .onChanged { value in
                             autoRotate = false
-                            dragY += Float(value.translation.width) * 0.01
-                            dragX += Float(value.translation.height) * 0.01
+                            let deltaX = Float(value.translation.width - lastDragTranslation.width) * 0.01
+                            let deltaY = Float(value.translation.height - lastDragTranslation.height) * 0.01
+                            dragY += deltaX
+                            dragX += deltaY
+                            lastDragTranslation = value.translation
+                        }
+                        .onEnded { _ in
+                            lastDragTranslation = .zero
                         }
                 )
             
@@ -57,7 +64,7 @@ struct ContentView: View {
                 newImages.append(img)
             }
         }
-        if!newImages.isEmpty {
+        if !newImages.isEmpty {
             var filled = newImages
             while filled.count < 6 {
                 filled.append(contentsOf: newImages)
@@ -73,57 +80,56 @@ struct CubeView: UIViewRepresentable {
     var autoRotate: Bool
     var dragX: Float
     var dragY: Float
-    
+
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.allowsCameraControl = false
         view.autoenablesDefaultLighting = true
         view.backgroundColor = UIColor.systemBackground
-        view.scene = makeScene()
-        return view
-    }
-    
-    func updateUIView(_ view: SCNView, context: Context) {
-        view.scene = makeScene()
-        guard let boxNode = view.scene?.rootNode.childNodes.first else { return }
-        
-        if autoRotate {
-            let spin = CABasicAnimation(keyPath: "rotation")
-            spin.fromValue = NSValue(scnVector4: SCNVector4(0, 1, 0, 0))
-            spin.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
-            spin.duration = 8
-            spin.repeatCount =.infinity
-            boxNode.addAnimation(spin, forKey: "spin")
-        } else {
-            boxNode.removeAnimation(forKey: "spin", blendOutDuration: 0.2)
-            view.scene?.rootNode.eulerAngles.x = dragX
-            view.scene?.rootNode.eulerAngles.y = dragY
-        }
-    }
-    
-    func makeScene() -> SCNScene {
+
         let scene = SCNScene()
+
         let box = SCNBox(width: 1.8, height: 1.8, length: 1.8, chamferRadius: 0.08)
-        box.materials = images.map { img in
-            let m = SCNMaterial()
-            m.diffuse.contents = img
-            m.locksAmbientWithDiffuse = true
-            return m
-        }
         let node = SCNNode(geometry: box)
+        node.name = "cube"
         scene.rootNode.addChildNode(node)
-        
+
         let camera = SCNCamera()
         camera.fieldOfView = 30
         let camNode = SCNNode()
         camNode.camera = camera
         camNode.position = SCNVector3(0, 0, 5)
         scene.rootNode.addChildNode(camNode)
-        
-        if!autoRotate {
-            scene.rootNode.eulerAngles.x = dragX
-            scene.rootNode.eulerAngles.y = dragY
+
+        view.scene = scene
+        return view
+    }
+
+    func updateUIView(_ view: SCNView, context: Context) {
+        guard let boxNode = view.scene?.rootNode.childNode(withName: "cube", recursively: false),
+              let box = boxNode.geometry as? SCNBox else { return }
+
+        box.materials = images.map { img in
+            let m = SCNMaterial()
+            m.diffuse.contents = img
+            m.locksAmbientWithDiffuse = true
+            return m
         }
-        return scene
+
+        if autoRotate {
+            if boxNode.animation(forKey: "spin") == nil {
+                let spin = CABasicAnimation(keyPath: "rotation")
+                spin.fromValue = NSValue(scnVector4: SCNVector4(0, 1, 0, 0))
+                spin.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
+                spin.duration = 8
+                spin.repeatCount = .infinity
+                boxNode.addAnimation(spin, forKey: "spin")
+            }
+            view.scene?.rootNode.eulerAngles = SCNVector3(0, 0, 0)
+        } else {
+            boxNode.removeAnimation(forKey: "spin", blendOutDuration: 0.2)
+            view.scene?.rootNode.eulerAngles.x = dragX
+            view.scene?.rootNode.eulerAngles.y = dragY
+        }
     }
 }
