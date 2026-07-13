@@ -7,8 +7,8 @@ struct ContentView: View {
     @State private var uiImages: [UIImage] = (0..<6).map { _ in UIImage(systemName: "photo")! }
     @State private var pickerItems: [PhotosPickerItem] = []
     @State private var autoRotate = true
-    @State private var dragX: Float = 0.3
-    @State private var dragY: Float = 0.6
+    @State private var dragX: Float = 0
+    @State private var dragY: Float = 0
     @State private var lastDragTranslation: CGSize = .zero
 
     var body: some View {
@@ -19,19 +19,23 @@ struct ContentView: View {
                 .frame(height: 380)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
                 .shadow(radius: 10)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            autoRotate = false
-                            let deltaX = Float(value.translation.width - lastDragTranslation.width) * 0.01
-                            let deltaY = Float(value.translation.height - lastDragTranslation.height) * 0.01
-                            dragY += deltaX
-                            dragX += deltaY
-                            lastDragTranslation = value.translation
-                        }
-                        .onEnded { _ in
-                            lastDragTranslation = .zero
-                        }
+                .overlay(
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    autoRotate = false
+                                    let deltaX = Float(value.translation.width - lastDragTranslation.width) * 0.01
+                                    let deltaY = Float(value.translation.height - lastDragTranslation.height) * 0.01
+                                    dragY += deltaX
+                                    dragX += deltaY
+                                    lastDragTranslation = value.translation
+                                }
+                                .onEnded { _ in
+                                    lastDragTranslation = .zero
+                                }
+                        )
                 )
             
             HStack {
@@ -84,7 +88,6 @@ struct CubeView: UIViewRepresentable {
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.allowsCameraControl = false
-        view.isUserInteractionEnabled = false
         view.autoenablesDefaultLighting = true
         view.backgroundColor = UIColor.systemBackground
 
