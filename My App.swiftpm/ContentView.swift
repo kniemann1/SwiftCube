@@ -84,6 +84,7 @@ struct CubeView: UIViewRepresentable {
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.allowsCameraControl = false
+        view.isUserInteractionEnabled = false
         view.autoenablesDefaultLighting = true
         view.backgroundColor = UIColor.systemBackground
 
@@ -117,19 +118,18 @@ struct CubeView: UIViewRepresentable {
         }
 
         if autoRotate {
-            if boxNode.animation(forKey: "spin") == nil {
-                let spin = CABasicAnimation(keyPath: "rotation")
-                spin.fromValue = NSValue(scnVector4: SCNVector4(0, 1, 0, 0))
-                spin.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
-                spin.duration = 8
-                spin.repeatCount = .infinity
-                boxNode.addAnimation(spin, forKey: "spin")
-            }
-            view.scene?.rootNode.eulerAngles = SCNVector3(0, 0, 0)
+            boxNode.removeAllAnimations()
+            boxNode.eulerAngles = SCNVector3(0, 0, 0)
+            let spin = CABasicAnimation(keyPath: "rotation")
+            spin.fromValue = NSValue(scnVector4: SCNVector4(0, 1, 0, 0))
+            spin.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
+            spin.duration = 8
+            spin.repeatCount = .infinity
+            boxNode.addAnimation(spin, forKey: "spin")
         } else {
-            boxNode.removeAnimation(forKey: "spin", blendOutDuration: 0.2)
-            view.scene?.rootNode.eulerAngles.x = dragX
-            view.scene?.rootNode.eulerAngles.y = dragY
+            boxNode.removeAllAnimations()
+            boxNode.eulerAngles.x = dragX
+            boxNode.eulerAngles.y = dragY
         }
     }
 }
